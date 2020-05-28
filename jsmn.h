@@ -55,6 +55,10 @@ extern "C" {
 #endif
 #endif
 
+#ifndef JMSN_UNSIGNED
+#define JSMN_UNSIGNED unsigned int
+#endif
+
 /**
  * JSON type identifier. Basic types are:
  * 	o Object
@@ -87,11 +91,11 @@ enum jsmnerr {
  */
 typedef struct jsmntok {
   jsmntype_t type;
-  unsigned int start;
-  unsigned int end;
-  unsigned int size;
+  JSMN_UNSIGNED start;
+  JSMN_UNSIGNED end;
+  JSMN_UNSIGNED size;
 #ifdef JSMN_PARENT_LINKS
-  int parent;
+  JSMN_UNSIGNED parent;
 #endif
 } jsmntok_t;
 
@@ -136,13 +140,13 @@ typedef enum {
  * the string being parsed now and current position in that string.
  */
 typedef struct jsmn_parser {
-  unsigned int pos;     /* offset in the JSON string */
-  unsigned int toknext; /* next token to allocate */
-  int toksuper;         /* superior token node, e.g. parent object or array */
-  jsmnstate_t state;    /* parser state */
+  JSMN_UNSIGNED pos;      /* offset in the JSON string */
+  JSMN_UNSIGNED toknext;  /* next token to allocate */
+  JSMN_UNSIGNED toksuper; /* superior token node, e.g. parent object or array */
+  jsmnstate_t state;      /* parser state */
 #ifndef JSMN_SINGLE
-  int tokbefore;        /* token immediately preceding the first token in the
-                           current JSON object */
+  JSMN_UNSIGNED tokbefore;  /* token immediately preceding the first token in
+                             * the current JSON object */
 #endif
 } jsmn_parser;
 
@@ -156,13 +160,16 @@ JSMN_API void jsmn_init(jsmn_parser *parser);
  * describing
  * a single JSON object.
  */
-JSMN_API int jsmn_parse(jsmn_parser *parser, const char *js, const size_t len,
-                        jsmntok_t *tokens, const unsigned int num_tokens);
+JSMN_API int jsmn_parse(jsmn_parser *parser, const char *js,
+                        const JSMN_UNSIGNED len, jsmntok_t *tokens,
+                        const JSMN_UNSIGNED num_tokens);
 
 #ifndef JSMN_HEADER
 
+#define JSMN_NEG1 ((JSMN_UNSIGNED) -1)
+
 #ifdef JSMN_SINGLE
-#define JSMN_TOKBEFORE -1
+#define JSMN_TOKBEFORE JSMN_NEG1
 #else
 #define JSMN_TOKBEFORE (parser->tokbefore)
 #endif
@@ -171,7 +178,7 @@ JSMN_API int jsmn_parse(jsmn_parser *parser, const char *js, const size_t len,
  * Allocates a fresh unused token from the token pool.
  */
 static jsmntok_t *jsmn_alloc_token(jsmn_parser *parser, jsmntok_t *tokens,
-                                   const size_t num_tokens) {
+                                   const JSMN_UNSIGNED num_tokens) {
   jsmntok_t *tok;
   if (parser->toknext >= num_tokens) {
     return NULL;
@@ -189,7 +196,8 @@ static jsmntok_t *jsmn_alloc_token(jsmn_parser *parser, jsmntok_t *tokens,
  * Fills token type and boundaries.
  */
 static void jsmn_fill_token(jsmntok_t *token, const jsmntype_t type,
-                            const int start, const int end) {
+                            const JSMN_UNSIGNED start,
+                            const JSMN_UNSIGNED end) {
   token->type = type;
   token->start = start;
   token->end = end;
@@ -220,12 +228,12 @@ typedef enum {
  * a primitive.
  */
 static int jsmn_parse_primitive(jsmn_parser *parser, const char *js,
-                                const size_t len, jsmntok_t *tokens,
-                                const size_t num_tokens, int extend) {
+                                const JSMN_UNSIGNED len, jsmntok_t *tokens,
+                                const JSMN_UNSIGNED num_tokens, int extend) {
   jsmntok_t *token;
-  int start;
+  JSMN_UNSIGNED start;
 #ifndef JSMN_PERMISSIVE_PRIMITIVES
-  int i;
+  unsigned int i;
   if (extend) {
     parser->pos = tokens[parser->toknext - 1].start;
   }
@@ -438,10 +446,10 @@ found:
  * Fills next token with JSON string.
  */
 static int jsmn_parse_string(jsmn_parser *parser, const char *js,
-                             const size_t len, jsmntok_t *tokens,
-                             const size_t num_tokens) {
+                             const JSMN_UNSIGNED len, jsmntok_t *tokens,
+                             const JSMN_UNSIGNED num_tokens) {
   jsmntok_t *token;
-  unsigned int start = parser->pos;
+  JSMN_UNSIGNED start = parser->pos;
 
   /* Skip starting quote */
   parser->pos++;
@@ -520,9 +528,9 @@ static int jsmn_parse_string(jsmn_parser *parser, const char *js,
  * token
  */
 static int jsmn_finish_primitive(jsmn_parser *parser, const char *js,
-                                   const size_t len, jsmntok_t *tokens,
-                                   const size_t num_tokens) {
-  unsigned int pos = parser->pos;
+                                   const JSMN_UNSIGNED len, jsmntok_t *tokens,
+                                   const JSMN_UNSIGNED num_tokens) {
+  JSMN_UNSIGNED pos = parser->pos;
   if (parser->toknext > 0 && parser->pos < len) {
     if (js[pos] > 32 && js[pos] < 127 && js[pos] != ',' && js[pos] != ':' &&
         js[pos] != '{' && js[pos] != '}' && js[pos] != '[' && js[pos] != ']' &&
@@ -539,15 +547,17 @@ static int jsmn_finish_primitive(jsmn_parser *parser, const char *js,
 /**
  * Parse JSON string and fill tokens.
  */
-JSMN_API int jsmn_parse(jsmn_parser *parser, const char *js, const size_t len,
-                        jsmntok_t *tokens, const unsigned int num_tokens) {
+JSMN_API int jsmn_parse(jsmn_parser *parser, const char *js,
+                        const JSMN_UNSIGNED len, jsmntok_t *tokens,
+                        const JSMN_UNSIGNED num_tokens) {
   int r;
 #ifndef JSMN_PARENT_LINKS
-  int i;
+  JSMN_UNSIGNED i;
 #endif
   jsmntok_t *token;
-  int depth = 0; /* Obj/array nesting depth. Used only when tokens == NULL */
-  int count = parser->toknext;
+  JSMN_UNSIGNED depth = 0; /* Object/array nesting depth.
+                            * Used only when tokens == NULL */
+  JSMN_UNSIGNED count = parser->toknext;
 
   r = jsmn_finish_primitive(parser, js, len, tokens, num_tokens);
   if (r < 0) {
@@ -807,10 +817,10 @@ done:
 JSMN_API void jsmn_init(jsmn_parser *parser) {
   parser->pos = 0;
   parser->toknext = 0;
-  parser->toksuper = -1;
+  parser->toksuper = JSMN_NEG1;
   parser->state = JSMN_STATE_ROOT;
 #ifndef JSMN_SINGLE
-  parser->tokbefore = -1;
+  parser->tokbefore = JSMN_NEG1;
 #endif
 }
 
