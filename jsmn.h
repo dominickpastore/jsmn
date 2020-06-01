@@ -53,6 +53,9 @@ extern "C" {
 #ifndef JSMN_PRIMITIVE_KEYS
 #define JSMN_PRIMITIVE_KEYS
 #endif
+#ifndef JSMN_VALUELESS_KEYS
+#define JSMN_VALUELESS_KEYS
+#endif
 #endif
 
 #ifndef JSMN_UNSIGNED
@@ -121,8 +124,12 @@ typedef enum {
   JSMN_STATE_OBJ_NEW = (JSMN_KEY | JSMN_CAN_CLOSE),
   /* Just saw a comma in an object. Expecting key. */
   JSMN_STATE_OBJ_KEY = (JSMN_KEY),
-  /* Just saw a key in an object. Expecting colon. */
+  /* Just saw a key in an object. Expecting colon or maybe close/comma. */
+#ifdef JSMN_VALUELESS_KEYS
+  JSMN_STATE_OBJ_COLON = (JSMN_KEY | JSMN_DELIMITER | JSMN_CAN_CLOSE),
+#else
   JSMN_STATE_OBJ_COLON = (JSMN_KEY | JSMN_DELIMITER),
+#endif
   /* Just saw a colon in an object. Expecting value. */
   JSMN_STATE_OBJ_VAL = (JSMN_VALUE),
   /* Just saw a value in an object. Expecting comma or close. */
@@ -721,7 +728,15 @@ container_close:
     case ',':
       if (tokens == NULL) {
         break;
-      } else if (parser->state == JSMN_STATE_OBJ_COMMA) {
+#ifdef JSMN_VALUELESS_KEYS
+      } else if (!(parser->state & JSMN_DELIMITER)) {
+#else
+      } else if ((parser->state & (JSMN_DELIMITER | JSMN_VALUE)) !=
+                 (JSMN_DELIMITER | JSMN_VALUE)) {
+#endif
+        return JSMN_ERROR_INVAL;
+      }
+      if (parser->state & JSMN_IN_OBJECT) {
 #ifdef JSMN_PARENT_LINKS
         parser->toksuper = tokens[parser->toksuper].parent;
 #else
@@ -729,10 +744,8 @@ container_close:
         parser->toksuper = i;
 #endif
         parser->state = JSMN_STATE_OBJ_KEY;
-      } else if (parser->state == JSMN_STATE_ARRAY_COMMA) {
-        parser->state = JSMN_STATE_ARRAY_ITEM;
       } else {
-        return JSMN_ERROR_INVAL;
+        parser->state = JSMN_STATE_ARRAY_ITEM;
       }
       break;
 #ifndef JSMN_PERMISSIVE_PRIMITIVES
