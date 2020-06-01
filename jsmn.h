@@ -142,7 +142,8 @@ typedef enum {
 typedef struct jsmn_parser {
   JSMN_UNSIGNED pos;      /* offset in the JSON string */
   JSMN_UNSIGNED toknext;  /* next token to allocate */
-  JSMN_UNSIGNED toksuper; /* superior token node, e.g. parent object or array */
+  JSMN_UNSIGNED toksuper; /* superior token node, e.g. parent object or array,
+                           * or set to JSMN_TOKBEFORE when no current parent. */
   jsmnstate_t state;      /* parser state */
 #ifndef JSMN_SINGLE
   JSMN_UNSIGNED tokbefore;  /* token immediately preceding the first token in
@@ -166,6 +167,10 @@ JSMN_API int jsmn_parse(jsmn_parser *parser, const char *js,
 
 #ifndef JSMN_HEADER
 
+/* The only need for a negative number is -1 for tokbefore when on the first
+ * object. This macro allows use of an unsigned type for tokbefore. That way,
+ * jsmn may use size_t to ensure there is no overflow for large input.
+ * (POSIX has ssize_t as a signed size_t, but this is not cross-platform.) */
 #define JSMN_NEG1 ((JSMN_UNSIGNED) -1)
 
 #ifdef JSMN_SINGLE
