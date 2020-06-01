@@ -731,22 +731,23 @@ container_close:
 #ifdef JSMN_VALUELESS_KEYS
       } else if (!(parser->state & JSMN_DELIMITER)) {
 #else
-      } else if ((parser->state & (JSMN_DELIMITER | JSMN_VALUE)) !=
-                 (JSMN_DELIMITER | JSMN_VALUE)) {
+      } else if ((parser->state & (JSMN_DELIMITER | JSMN_KEY)) !=
+                 JSMN_DELIMITER) {
 #endif
         return JSMN_ERROR_INVAL;
       }
-      if (parser->state & JSMN_IN_OBJECT) {
+      if (parser->state & JSMN_IN_ARRAY) {
+        parser->state = JSMN_STATE_ARRAY_ITEM;
+        break;
+      } else if (parser->state & JSMN_VALUE) {
 #ifdef JSMN_PARENT_LINKS
         parser->toksuper = tokens[parser->toksuper].parent;
 #else
         for (i = parser->toksuper - 1; tokens[i].end != 0; i--);
         parser->toksuper = i;
 #endif
-        parser->state = JSMN_STATE_OBJ_KEY;
-      } else {
-        parser->state = JSMN_STATE_ARRAY_ITEM;
       }
+      parser->state = JSMN_STATE_OBJ_KEY;
       break;
 #ifndef JSMN_PERMISSIVE_PRIMITIVES
     /* In strict mode primitives are: numbers and booleans */

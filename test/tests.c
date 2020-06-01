@@ -32,7 +32,6 @@ int test_object(void) {
 
   check(parse("{\"a\"\n0}", JSMN_ERROR_INVAL, 3));
   check(parse("{\"a\": {\"a\": 2 3}}", JSMN_ERROR_INVAL, 6));
-  check(parse("{\"a\",\"b\":1}", JSMN_ERROR_INVAL, 4));
   check(parse("{\"a\":1,}", JSMN_ERROR_INVAL, 3));
   check(parse("{\"a\":\"b\":\"c\"}", JSMN_ERROR_INVAL, 4));
   check(parse("{,}", JSMN_ERROR_INVAL, 1));
@@ -49,12 +48,15 @@ int test_object(void) {
 #ifndef JSMN_VALUELESS_KEYS
   check(parse("{\"a\"}", JSMN_ERROR_INVAL, 2));
   check(parse("{\"a\": 1, \"b\"}", JSMN_ERROR_INVAL, 4));
+  check(parse("{\"a\",\"b\":1}", JSMN_ERROR_INVAL, 4));
   check(parse("{\"a\", 0}", JSMN_ERROR_INVAL, 3));
   check(parse("{\"a\": {2}}", JSMN_ERROR_INVAL, 4));
 #else
   check(parse("{\"a\"}", 2, 2, JSMN_OBJECT, -1, -1, 1, JSMN_STRING, "a", 0));
   check(parse("{\"a\": 1, \"b\"}", 4, 4, JSMN_OBJECT, -1, -1, 2,
               JSMN_STRING, "a", 1, JSMN_PRIMITIVE, "1", JSMN_STRING, "b", 0));
+  check(parse("{\"a\",\"b\":1}", 4, 4, JSMN_OBJECT, -1, -1, 2,
+              JSMN_STRING, "a", 0, JSMN_STRING, "b", 1, JSMN_PRIMITIVE, "1"));
 #ifndef JSMN_PRIMITIVE_KEYS
   check(parse("{\"a\", 0}", JSMN_ERROR_INVAL, 3));
   check(parse("{\"a\": {2}}", JSMN_ERROR_INVAL, 4));
