@@ -30,13 +30,8 @@ int test_object(void) {
               JSMN_STRING, "a", 1, JSMN_PRIMITIVE, "0", JSMN_STRING, "b", 1,
               JSMN_STRING, "c", 0));
 
-#ifndef JSMN_NON_STRICT
   check(parse("{\"a\"\n0}", JSMN_ERROR_INVAL, 3));
-  check(parse("{\"a\", 0}", JSMN_ERROR_INVAL, 3));
-  check(parse("{\"a\": {2}}", JSMN_ERROR_INVAL, 4));
   check(parse("{\"a\": {\"a\": 2 3}}", JSMN_ERROR_INVAL, 6));
-  check(parse("{\"a\"}", JSMN_ERROR_INVAL, 2));
-  check(parse("{\"a\": 1, \"b\"}", JSMN_ERROR_INVAL, 4));
   check(parse("{\"a\",\"b\":1}", JSMN_ERROR_INVAL, 4));
   check(parse("{\"a\":1,}", JSMN_ERROR_INVAL, 3));
   check(parse("{\"a\":\"b\":\"c\"}", JSMN_ERROR_INVAL, 4));
@@ -50,7 +45,27 @@ int test_object(void) {
   check(parse("{\"a\":1\"b\":1}", JSMN_ERROR_INVAL, 5));
   check(parse("{\"a\":\"b\", \"c\":\"d\", {\"e\": \"f\"}}",
               JSMN_ERROR_INVAL, 8));
+
+#ifndef JSMN_VALUELESS_KEYS
+  check(parse("{\"a\"}", JSMN_ERROR_INVAL, 2));
+  check(parse("{\"a\": 1, \"b\"}", JSMN_ERROR_INVAL, 4));
+  check(parse("{\"a\", 0}", JSMN_ERROR_INVAL, 3));
+  check(parse("{\"a\": {2}}", JSMN_ERROR_INVAL, 4));
+#else
+  check(parse("{\"a\"}", 2, 2, JSMN_OBJECT, -1, -1, 1, JSMN_STRING, "a", 0));
+  check(parse("{\"a\": 1, \"b\"}", 4, 4, JSMN_OBJECT, -1, -1, 2,
+              JSMN_STRING, "a", 1, JSMN_PRIMITIVE, "1", JSMN_STRING, "b", 0));
+#ifndef JSMN_PRIMITIVE_KEYS
+  check(parse("{\"a\", 0}", JSMN_ERROR_INVAL, 3));
+  check(parse("{\"a\": {2}}", JSMN_ERROR_INVAL, 4));
+#else
+  check(parse("{\"a\", 0}", 3, 3, JSMN_OBJECT, -1, -1, 2, JSMN_STRING, "a", 0,
+              JSMN_PRIMITIVE, "0"));
+  check(parse("{\"a\": {2}}", 4, 4, JSMN_OBJECT, -1, -1, 1, JSMN_STRING, "a", 1,
+              JSMN_OBJECT, -1, -1, 1, JSMN_PRIMITIVE, "2"));
 #endif
+#endif
+
   return 0;
 }
 
@@ -413,23 +428,6 @@ int test_unenclosed(void) {
   check(parse(js, 1, 1, JSMN_STRING, "a", 0));
 #endif
 
-  /* XXX No longer valid after RFC 8259 fixes
-#ifndef JSMN_STRICT
-  js = "a: 0garbage";
-  check(parse(js, 2, 2, JSMN_PRIMITIVE, "a", JSMN_PRIMITIVE, "0garbage"));
-
-  js = "Day : 26\nMonth : Sep\n\nYear: 12";
-  check(parse(js, 6, 6, JSMN_PRIMITIVE, "Day", JSMN_PRIMITIVE, "26",
-              JSMN_PRIMITIVE, "Month", JSMN_PRIMITIVE, "Sep", JSMN_PRIMITIVE,
-              "Year", JSMN_PRIMITIVE, "12"));
-  */
-
-  /* nested {s don't cause a parse error. */
-  /* XXX No longer valid after RFC 8259 fixes
-  js = "\"key {1\": 1234";
-  check(parse(js, 2, 2, JSMN_STRING, "key {1", 1, JSMN_PRIMITIVE, "1234"));
-#endif
-  */
   return 0;
 }
 
